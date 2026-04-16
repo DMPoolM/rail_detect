@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# Data & checkpoints (too large for git)
+data/
+checkpoints/
+logs/
+
+# Debug & output artifacts
+debug/
+output_*.mp4
+*.mp4
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
