@@ -101,11 +101,28 @@ Switch backbone in `configs/default.yaml`: set `model.backbone` to `mobilenet_v3
 
 ```bash
 python eval.py --cfg configs/default.yaml --ckpt checkpoints/best.pt
+python eval.py --cfg configs/default.yaml --ckpt checkpoints/best.pt --json
 ```
 
-Metrics:
-- **Row Accuracy**: predicted x within ±2 grid cells of ground truth
-- **Present Accuracy**: binary "rail present at this row?" classification
+| Metric | Meaning |
+|---|---|
+| `presence_precision` / `presence_recall` / `presence_f1` | Is there a rail on this anchor row at all? |
+| `row_acc` | **The strict number.** Share of ground-truth rail rows whose predicted cell is within ±2 cells. Predicting "no rail" on a real row counts as a miss. |
+| `row_acc_detected` | The same ±2-cell check, but only over rows where ground truth *and* prediction both say "rail". Always ≥ `row_acc`; an earlier revision of this README quoted 95.5% in this sense. |
+| `row_mae_cells` / `row_mae_px` | Mean absolute x error, in grid cells and (when `input.width` is set) pixels. |
+| `left_*` / `right_*` | Precision and recall split per rail. |
+
+Training appends one row per epoch to `checkpoints/metrics.csv`.
+
+### Testing
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+pytest
+```
+
+The suite (~70 tests) runs against generated data — no RailSem19 download, no GPU, about two seconds. CI in `.github/workflows/ci.yml` runs lint and tests on every push and pull request.
 
 ### Project Structure
 
@@ -116,11 +133,16 @@ models/backbones.py          ResNet-18 / MobileNetV3-Small wrappers
 models/ufld_rail.py          Row-anchor head + auxiliary seg head
 losses.py                    CE + structural similarity + aux seg loss
 utils/anchor.py              Anchor row generation, x↔grid conversion
+utils/config.py              YAML-over-defaults config merge + validation
+utils/metrics.py             Presence/localisation validation metrics
 utils/railsem_parser.py      RailSem19 JSON parser + ego-rail heuristic
+utils/temporal.py            EMA smoothing with re-acquisition handling
 utils/visualization.py       Draw rail polylines on frames
-train.py                     Training loop
+train.py                     Training loop (AMP, resume, CSV metrics)
 eval.py                      Validation metrics
 infer_video.py               Video inference with temporal smoothing
+tests/                       pytest suite on synthetic data
+pyproject.toml               ruff + pytest configuration
 ```
 
 ### Known Limitations
@@ -133,6 +155,10 @@ infer_video.py               Video inference with temporal smoothing
 
 - Architecture inspired by [Ultra-Fast-Lane-Detection (UFLD)](https://github.com/cfzd/Ultra-Fast-Lane-Detection)
 - Dataset: [RailSem19](https://www.wilddash.cc/railsem19) by Zendel et al.
+
+### License
+
+MIT — see [LICENSE](LICENSE).
 
 ---
 
@@ -214,6 +240,16 @@ python infer_video.py \
 
 切换方法：在 `configs/default.yaml` 中将 `model.backbone` 改为 `mobilenet_v3_small`。
 
+### 测试
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+pytest
+```
+
+测试全部基于生成数据，不需要下载 RailSem19、不需要 GPU，约两秒跑完；CI 配置在 `.github/workflows/ci.yml`。
+
 ### 已知局限
 
 - **域差距**：在欧洲铁路数据上训练，对外观差异大的场景（如日本窄轨+驾驶室视角）需要裁剪+微调
@@ -224,6 +260,10 @@ python infer_video.py \
 
 - 架构灵感来自 [Ultra-Fast-Lane-Detection (UFLD)](https://github.com/cfzd/Ultra-Fast-Lane-Detection)
 - 数据集：[RailSem19](https://www.wilddash.cc/railsem19)，Zendel et al.
+
+### 许可证
+
+MIT，详见 [LICENSE](LICENSE)。
 
 ---
 

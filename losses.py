@@ -13,6 +13,9 @@ class RowAnchorLoss(nn.Module):
       target: (B, K, H)     — integer class labels in [0, W]
       seg_logits: (B, 1, Hs, Ws) or None
       seg_gt:     (B, Hs, Ws) or None
+      seg_valid:  (B,) or None — per-sample 1/0 mask; samples with a 0 are excluded
+                  from the auxiliary seg loss instead of being trained on an
+                  all-background mask.
     """
 
     def __init__(
@@ -36,6 +39,7 @@ class RowAnchorLoss(nn.Module):
         target: torch.Tensor,
         seg_logits: torch.Tensor | None = None,
         seg_gt: torch.Tensor | None = None,
+        seg_valid: torch.Tensor | None = None,
     ) -> dict:
         B, K, H, C = logits.shape
         cls = F.cross_entropy(logits.reshape(-1, C), target.reshape(-1))
@@ -56,7 +60,14 @@ class RowAnchorLoss(nn.Module):
             shp = torch.zeros((), device=logits.device)
 
         if seg_logits is not None and seg_gt is not None:
-            seg = F.binary_cross_entropy_with_logits(seg_logits.squeeze(1), seg_gt)
+            per_sample = F.binary_cross_entropy_with_logits(
+                seg_logits.squeeze(1), seg_gt, reduction="none"
+            ).flatten(1).mean(dim=1)
+            if seg_valid is not None:
+                w = seg_valid.to(per_sample.dtype).reshape(-1)
+                seg = (per_sample * w).sum() / w.sum().clamp(min=1.0)
+            else:
+                seg = per_sample.mean()
         else:
             seg = torch.zeros((), device=logits.device)
 

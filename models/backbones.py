@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 import torch
 import torch.nn as nn
 from torchvision.models import (
-    ResNet18_Weights,
     MobileNet_V3_Small_Weights,
+    ResNet18_Weights,
     mobilenet_v3_small,
     resnet18,
 )
@@ -15,8 +14,8 @@ from torchvision.models import (
 
 @dataclass
 class BackboneInfo:
-    channels: List[int]  # channels of the 3 feature maps returned by forward()
-    strides: List[int]
+    channels: list[int]  # channels of the 3 feature maps returned by forward()
+    strides: list[int]
 
 
 class ResNet18Backbone(nn.Module):

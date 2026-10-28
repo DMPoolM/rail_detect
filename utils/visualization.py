@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 
-
 LEFT_COLOR = (0, 0, 255)
 RIGHT_COLOR = (255, 0, 0)
 

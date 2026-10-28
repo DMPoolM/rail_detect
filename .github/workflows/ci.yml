@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # CPU-only torch keeps the job small; the test suite does not need CUDA.
+      - name: Install PyTorch (CPU)
+        run: pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+
+      - name: Install project + dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: python -m pytest
